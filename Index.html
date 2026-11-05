@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auxin and Green Onion Mitosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Plan: lab-notebook page. Cool green-white paper, leaf-green accent, chromosome-stain violet for the second accent.
+   Layout: one narrow column; header, a row of section buttons, one panel shown at a time; the proposal opens in a reader on top. */
+:root {
+  --paper: #f5f8f5;
+  --card: #ffffff;
+  --ink: #1a2520;
+  --muted: #5a6961;
+  --line: #d8e0da;
+  --leaf: #2d6a45;
+  --leaf-soft: #e3efe6;
+  --stain: #6a3d9e;
+  --stain-soft: #efe8f7;
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111714; --card: #172019; --ink: #e2ebe4; --muted: #93a49a; --line: #2a362f;
+    --leaf: #74c393; --leaf-soft: #1d2e23; --stain: #b897e4; --stain-soft: #261f33;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111714; --card: #172019; --ink: #e2ebe4; --muted: #93a49a; --line: #2a362f;
+  --leaf: #74c393; --leaf-soft: #1d2e23; --stain: #b897e4; --stain-soft: #261f33;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+}
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 500; text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(30px, 5vw, 44px); }
+h2 { font-size: 28px; }
+h3 { font-size: 20px; }
+p { margin: 0; }
+a { color: var(--leaf); }
+.mono { font-family: var(--font-mono); font-size: 13px; letter-spacing: .02em; }
+.muted { color: var(--muted); }
+:focus-visible { outline: 2px solid var(--stain); outline-offset: 2px; border-radius: 4px; }
+
+/* Header */
+header { padding: 40px 0 20px; display: grid; gap: 12px; }
+.eyebrow { color: var(--leaf); text-transform: uppercase; }
+.rq { font-family: var(--font-display); font-size: 19px; color: var(--muted); max-width: 62ch; font-style: italic; }
+
+/* Section buttons */
+nav { position: sticky; top: 0; z-index: 5; background: var(--paper); border-bottom: 1px solid var(--line); }
+nav .wrap { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; padding-bottom: 12px; }
+.tab {
+  font: 500 14px var(--font-body);
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 16px;
+  cursor: pointer;
+}
+.tab:hover { border-color: var(--leaf); }
+.tab[aria-current="page"] { background: var(--leaf); border-color: var(--leaf); color: var(--paper); }
+.tab.proposal-tab { border-color: var(--stain); color: var(--stain); }
+.tab.proposal-tab:hover { background: var(--stain-soft); }
+
+main { padding: 32px 0 64px; }
+.view { display: none; }
+.view.active { display: grid; gap: 28px; }
+.view-head { display: grid; gap: 6px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.grid-3 { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.key-label { color: var(--stain); }
+
+.btn {
+  font: 600 15px var(--font-body);
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--stain); color: #fff;
+  border: 0; border-radius: 8px; padding: 12px 20px; cursor: pointer;
+  justify-self: start;
+}
+:root[data-theme="dark"] .btn { color: #160f20; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn { color: #160f20; } }
+.btn:hover { filter: brightness(1.08); }
+.btn.small { font-size: 13px; padding: 7px 12px; }
+
+.callout {
+  border-left: 3px solid var(--stain);
+  background: var(--stain-soft);
+  padding: 18px 20px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  display: grid; gap: 14px;
+}
+
+/* Concentration ladder */
+.ladder { display: flex; flex-wrap: wrap; gap: 8px; }
+.dose {
+  font-family: var(--font-mono); font-size: 13px;
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;
+  background: var(--card); font-variant-numeric: tabular-nums;
+  display: grid; gap: 2px; min-width: 76px;
+}
+.dose b { font-weight: 500; font-size: 15px; }
+.dose span { color: var(--muted); font-size: 11px; }
+.dose.control { border-style: dashed; }
+.dose.high { border-color: var(--stain); }
+
+/* Timeline */
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; }
+.step { display: grid; grid-template-columns: 28px 1fr; gap: 14px; }
+.rail { display: flex; flex-direction: column; align-items: center; }
+.dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); background: var(--paper); margin-top: 6px; flex: none; }
+.line { width: 2px; flex: 1; background: var(--line); }
+.step:last-child .line { display: none; }
+.step[data-status="done"] .dot { background: var(--leaf); border-color: var(--leaf); }
+.step[data-status="now"] .dot { background: var(--stain); border-color: var(--stain); box-shadow: 0 0 0 4px var(--stain-soft); }
+.step-body { padding-bottom: 26px; display: grid; gap: 6px; }
+.step-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
+.pill { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.pill.done { background: var(--leaf-soft); color: var(--leaf); border-color: transparent; }
+.pill.now { background: var(--stain-soft); color: var(--stain); border-color: transparent; }
+
+/* Lists & tables */
+.list { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.table-box { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 14px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; }
+tr:last-child td { border-bottom: 0; }
+td.empty { color: var(--muted); }
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--leaf-soft); color: var(--ink); padding: 12px 16px; border-radius: 8px; overflow-x: auto; }
+.placeholder {
+  border: 1.5px dashed var(--line); border-radius: var(--radius); min-height: 180px;
+  display: grid; place-items: center; text-align: center; color: var(--muted); padding: 20px;
+}
+.steps { counter-reset: s; list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 10px; }
+.steps li::before { content: counter(s, decimal-leading-zero); font-family: var(--font-mono); color: var(--leaf); padding-top: 2px; }
+
+.log { display: grid; gap: 12px; }
+.log .card { grid-template-columns: 120px 1fr; gap: 14px; }
+@media (max-width: 520px) { .log .card { grid-template-columns: 1fr; gap: 4px; } }
+
+.ref { padding-left: 2em; text-indent: -2em; overflow-wrap: anywhere; }
+
+footer { border-top: 1px solid var(--line); padding: 20px 0 40px; }
+
+/* Proposal reader */
+.reader { position: fixed; inset: 0; z-index: 20; display: none; }
+.reader.open { display: block; }
+.scrim { position: absolute; inset: 0; background: rgb(10 16 12 / .45); }
+.sheet {
+  position: absolute; top: 0; right: 0; height: 100%; width: min(760px, 100%);
+  background: var(--paper); border-left: 1px solid var(--line);
+  overflow-y: auto; animation: slide .25s ease-out;
+}
+@keyframes slide { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+.sheet-head {
+  position: sticky; top: 0; background: var(--paper); border-bottom: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 28px;
+}
+.close { font: 500 14px var(--font-body); background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.sheet-body { padding: 28px; display: grid; gap: 30px; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+.toc a { font-family: var(--font-mono); font-size: 12px; text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; color: var(--muted); }
+.toc a:hover { color: var(--stain); border-color: var(--stain); }
+.prop-sec { display: grid; gap: 12px; scroll-margin-top: 70px; }
+.prop-sec p, .prop-sec li { max-width: 66ch; }
+.sec-num { color: var(--stain); }
+dl.terms { margin: 0; display: grid; gap: 12px; }
+dl.terms div { display: grid; gap: 2px; }
+dt { font-weight: 600; }
+dd { margin: 0; color: var(--ink); }
+.abbr { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 14px; }
+.abbr .mono { color: var(--stain); }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <p class="mono eyebrow">IB Extended Essay · Biology · Plant growth regulators</p>
+  <h1>Auxin and Mitosis in Green Onion</h1>
+  <p class="rq">Will green onions be affected by different amounts of auxin in terms of cell mitosis, and what is the range and degree of the impact?</p>
+</header>
+
+<nav aria-label="Sections">
+  <div class="wrap">
+    <button class="tab" data-view="beginning">Beginning</button>
+    <button class="tab" data-view="timeline">Timeline</button>
+    <button class="tab" data-view="method">Method</button>
+    <button class="tab" data-view="results">Results</button>
+    <button class="tab" data-view="log">Research log</button>
+    <button class="tab" data-view="references">References</button>
+    <button class="tab proposal-tab" data-open-proposal>Proposal ↗</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- BEGINNING -->
+  <section class="view" id="view-beginning" aria-labelledby="h-beginning">
+    <div class="view-head">
+      <p class="mono muted">Stage: proposal written · Nov 2026</p>
+      <h2 id="h-beginning">Beginning</h2>
+    </div>
+
+    <div class="grid-3">
+      <article class="card">
+        <p class="mono key-label">Independent variable</p>
+        <h3>Auxin</h3>
+        <p>A plant hormone that changes how a plant grows, including how its cells divide during mitosis.</p>
+      </article>
+      <article class="card">
+        <p class="mono key-label">Test organism</p>
+        <h3>Green onion</h3>
+        <p>Grows quickly and is common in daily life, so changes caused by auxin should be easy to see.</p>
+      </article>
+      <article class="card">
+        <p class="mono key-label">Dependent variable</p>
+        <h3>Mitosis</h3>
+        <p>Cell division in the root tip. Most cells sit in interphase, so I compare how many are dividing in each group.</p>
+      </article>
+    </div>
+
+    <div class="callout">
+      <div style="display:grid;gap:6px">
+        <h3>The full research proposal</h3>
+        <p>Research question, why I chose this topic, literature review, approach and references.</p>
+      </div>
+      <button class="btn" data-open-proposal>Open my proposal →</button>
+    </div>
+
+    <div style="display:grid;gap:10px">
+      <p class="mono muted">Planned auxin concentrations (mg/L)</p>
+      <div class="ladder">
+        <div class="dose control"><b>0</b><span>control</span></div>
+        <div class="dose"><b>0.1</b><span>low</span></div>
+        <div class="dose"><b>0.2</b><span>low</span></div>
+        <div class="dose"><b>0.4</b><span>low</span></div>
+        <div class="dose"><b>0.7</b><span>mid</span></div>
+        <div class="dose"><b>1</b><span>mid</span></div>
+        <div class="dose high"><b>5</b><span>high</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section class="view" id="view-timeline" aria-labelledby="h-timeline">
+    <div class="view-head">
+      <h2 id="h-timeline">Timeline</h2>
+      <p class="muted">Dates marked TBD are placeholders to fill in.</p>
+    </div>
+    <ol class="timeline">
+      <li class="step" data-status="done">
+        <div class="rail"><span class="dot"></span><span class="line"></span></div>
+        <div class="step-body">
+          <div class="step-top"><h3>Choose topic</h3><span class="pill done">Done</span></div>
+          <p class="mono muted">Before Nov 2026</p>
+          <p>Auxin, green onions and mitosis.</p>
+        </div>
+      </li>
+      <li class="step" data-status="done">
+        <div class="rail"><span class="dot"></span><span class="line"></span></div>
+        <div class="step-body">
+          <div class="step-top"><h3>Write research proposal</h3><span class="pill done">Done</span></div>
+          <p class="mono muted">4 Nov 2026</p>
+          <button class="btn small" data-open-proposal>View proposal →</button>
+        </div>
+      </li>
+      <li class="step" data-status="now">
+        <div class="rail"><span class="dot"></span><span class="line"></span></div>
+        <div class="step-body">
+          <div class="step-top"><h3>Literature review</h3><span class="pill now">In progress</span></div>
+          <p class="mono muted">TBD</p>
+          <p>Read more on low vs. high auxin concentrations and root tip mitosis.</p>
+        </div>
+      </li>
+      <li class="step" data-status="next">
+        <div class="rail"><span class="dot"></span><span class="line"></span></div>
+        <div class="step-body">
+          <div class="step-top"><h3>Choose and buy auxin</h3><span class="pill">Next</span></div>
+          <p class="mono muted">TBD</p>
+          <p>Decide which type of auxin to use.</p>
+        </div>
+      </li>
+      <li class="step" data-status="planned">
+        <div class="rail"><span class="dot"></span><span class="line"></span></div>
+        <div class="step-body">
+          <div class="step-top"><h3>Finalise method</h3><span class="pill">Planned</span></div>
+          <p class="mono muted">TBD</p>
+        </div>
+      </li>
+      <li class="step" data-status="planned">
+        <div class="rail"><span class="dot"></span><span class="line"></span></div>
+        <div class="step-body">
+          <div class="step-top"><h3>Run experiment</h3><span class="pill">Planned</span></div>
+          <p class="mono muted">TBD</p>
+          <p>Take samples every few days and compare with the control group.</p>
+        </div>
+      </li>
+      <li class="step" data-status="planned">
+        <div class="rail"><span class="dot"></span><span class="line"></span></div>
+        <div class="step-body">
+          <div class="step-top"><h3>Microscope work and cell counts</h3><span class="pill">Planned</span></div>
+          <p class="mono muted">TBD</p>
+        </div>
+      </li>
+      <li class="step" data-status="planned">
+        <div class="rail"><span class="dot"></span><span class="line"></span></div>
+        <div class="step-body">
+          <div class="step-top"><h3>Analyse data</h3><span class="pill">Planned</span></div>
+          <p class="mono muted">TBD</p>
+        </div>
+      </li>
+      <li class="step" data-status="planned">
+        <div class="rail"><span class="dot"></span><span class="line"></span></div>
+        <div class="step-body">
+          <div class="step-top"><h3>Write and submit essay</h3><span class="pill">Planned</span></div>
+          <p class="mono muted">TBD</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- METHOD -->
+  <section class="view" id="view-method" aria-labelledby="h-method">
+    <div class="view-head">
+      <h2 id="h-method">Method</h2>
+      <p class="muted">Draft. The detailed process is not decided yet.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <p class="mono key-label">Materials</p>
+        <ul class="list">
+          <li>Green onions</li>
+          <li>Auxin (type TBD)</li>
+          <li>Water</li>
+          <li>Acid</li>
+        </ul>
+      </div>
+      <div class="card">
+        <p class="mono key-label">Equipment</p>
+        <ul class="list">
+          <li>Microscope</li>
+          <li>Beakers</li>
+          <li>Scale</li>
+        </ul>
+      </div>
+      <div class="card">
+        <p class="mono key-label">Safety</p>
+        <ul class="list">
+          <li>Gloves</li>
+          <li>Goggles</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <p class="mono key-label">Procedure outline (edit me)</p>
+      <ol class="steps">
+        <li><span>Grow green onions in water (control) and in each auxin solution.</span></li>
+        <li><span>Collect root tip samples every few days.</span></li>
+        <li><span>Treat samples with acid.</span></li>
+        <li><span>Prepare slides and observe under the microscope.</span></li>
+        <li><span>Count dividing cells and total cells in each group.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="view" id="view-results" aria-labelledby="h-results">
+    <div class="view-head">
+      <h2 id="h-results">Results</h2>
+      <p class="muted">Empty until the experiment runs.</p>
+    </div>
+    <p class="formula">Mitotic Index (MI) = cells in mitosis ÷ total cells counted × 100%</p>
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr><th>Group</th><th>Auxin (mg/L)</th><th>Total cells</th><th>Cells in mitosis</th><th>MI (%)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Control</td><td>0</td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td>A</td><td>0.1</td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td>B</td><td>0.2</td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td>C</td><td>0.4</td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td>D</td><td>0.7</td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td>E</td><td>1</td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td>F</td><td>5</td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="placeholder">Graph space: MI (%) against auxin concentration</div>
+  </section>
+
+  <!-- LOG -->
+  <section class="view" id="view-log" aria-labelledby="h-log">
+    <div class="view-head">
+      <h2 id="h-log">Research log</h2>
+      <p class="muted">Short dated notes on progress, newest first.</p>
+    </div>
+    <div class="log">
+      <div class="card">
+        <p class="mono muted">4 Nov 2026</p>
+        <p>Finished the research proposal. Planned concentrations: 0.1 to 5 mg/L plus a control.</p>
+      </div>
+      <div class="card">
+        <p class="mono muted">Date</p>
+        <p class="muted">Next entry goes here.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- REFERENCES -->
+  <section class="view" id="view-references" aria-labelledby="h-references">
+    <div class="view-head">
+      <h2 id="h-references">References</h2>
+      <p class="muted">MLA format.</p>
+    </div>
+    <div class="card" style="gap:16px">
+      <p class="ref">istic, et al. “国家科技期刊平台.” <i>Napstic.Cn</i>, <a href="https://opaj.napstic.cn/0120120602952822">https://opaj.napstic.cn/0120120602952822</a>. Accessed 4 Nov. 2026.</p>
+      <p class="ref">Singh, Mani Ram. “Effects of IAA With Maleic Hydrazide and Colchicine on Root Tip Mitosis.” <i>Cytologia</i>, vol. 47, no. 2, International Society of Cytology, 1982, pp. 419–26, <a href="https://doi.org/10.1508/cytologia.47.419">https://doi.org/10.1508/cytologia.47.419</a>. Accessed 4 Nov. 2026.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p class="mono muted">Extended Essay site · last updated 4 Nov 2026</p>
+</footer>
+
+<!-- PROPOSAL READER -->
+<div class="reader" id="reader" aria-hidden="true">
+  <div class="scrim" data-close></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="prop-title">
+    <div class="sheet-head">
+      <p class="mono eyebrow">Research proposal</p>
+      <button class="close" data-close id="close-btn">Close ✕</button>
+    </div>
+    <div class="sheet-body">
+      <div style="display:grid;gap:12px">
+        <h2 id="prop-title">How auxin concentration affects mitosis in green onion</h2>
+        <nav class="toc" aria-label="Proposal sections">
+          <a href="#p-question" data-jump>1 Question</a>
+          <a href="#p-terms" data-jump>2 Key terms</a>
+          <a href="#p-why" data-jump>3 Why</a>
+          <a href="#p-lit" data-jump>4 Literature</a>
+          <a href="#p-approach" data-jump>5 Approach</a>
+          <a href="#p-refs" data-jump>6 References</a>
+        </nav>
+      </div>
+
+      <section class="prop-sec" id="p-question">
+        <p class="mono sec-num">01</p>
+        <h3>Research question</h3>
+        <p>Will green onions be affected by different amounts of auxin in terms of cell mitosis, and what is the range and degree of the impact?</p>
+      </section>
+
+      <section class="prop-sec" id="p-terms">
+        <p class="mono sec-num">02</p>
+        <h3>The three key elements</h3>
+        <dl class="terms">
+          <div><dt>Auxin</dt><dd>The most important variable in my research question. Auxin changes the growth of the plant and the process of mitosis.</dd></div>
+          <div><dt>Green onions</dt><dd>My experiment object, because green onions grow very quickly and we see them in daily life. I will take samples every few days and compare them with the control group.</dd></div>
+          <div><dt>Mitosis</dt><dd>The process of cell division. Most cells are in interphase, so I will compare the different groups and make a detailed graph of how much auxin affected the plants.</dd></div>
+        </dl>
+      </section>
+
+      <section class="prop-sec" id="p-why">
+        <p class="mono sec-num">03</p>
+        <h3>Why I chose this topic</h3>
+        <p>I have heard that many sellers and farmers use auxins to grow more plants in a short period of time; in China there are many different methods of using plant growth chemicals. I have also seen farmers add auxin when a plant grows slowly, gets sick or stops growing, and this can make the fruit or vegetable taste worse. I have also learned that auxin has a connection to photosynthesis.</p>
+        <p>I am using green onion because it is common in daily life and grows fast, so the effect of auxin should be more visible. There are many kinds of auxin, and I am still deciding which one to buy.</p>
+      </section>
+
+      <section class="prop-sec" id="p-lit">
+        <p class="mono sec-num">04</p>
+        <h3>Literature review</h3>
+        <p>Low auxin concentrations speed up growth, while high concentrations can make the plant stop growing. In the low-concentration groups, MI, MCN and CAF all increased; in the high-concentration groups, the MI and MCN groups did not grow.</p>
+        <div class="abbr">
+          <span class="mono">MI</span><span>Mitotic Index</span>
+          <span class="mono">MCN</span><span>Micronucleus rate</span>
+          <span class="mono">CAF</span><span>Chromosomal Aberration Frequency</span>
+        </div>
+        <p>Different types of plants respond differently. My research will look not only at visible plant growth but also at how the cells divide.</p>
+      </section>
+
+      <section class="prop-sec" id="p-approach">
+        <p class="mono sec-num">05</p>
+        <h3>Research approach</h3>
+        <ul class="list">
+          <li>Materials: green onion, auxin, water, acid</li>
+          <li>Equipment: microscope, beakers, scale</li>
+          <li>Safety: gloves, goggles</li>
+        </ul>
+        <p>Auxin concentrations: 0.1, 0.2, 0.4, 0.7, 1 and 5 mg/L, plus a control group.</p>
+        <p class="muted">The detailed process has not been decided yet.</p>
+      </section>
+
+      <section class="prop-sec" id="p-refs">
+        <p class="mono sec-num">06</p>
+        <h3>References</h3>
+        <p class="ref">istic, et al. “国家科技期刊平台.” <i>Napstic.Cn</i>, <a href="https://opaj.napstic.cn/0120120602952822">https://opaj.napstic.cn/0120120602952822</a>. Accessed 4 Nov. 2026.</p>
+        <p class="ref">Singh, Mani Ram. “Effects of IAA With Maleic Hydrazide and Colchicine on Root Tip Mitosis.” <i>Cytologia</i>, vol. 47, no. 2, International Society of Cytology, 1982, pp. 419–26, <a href="https://doi.org/10.1508/cytologia.47.419">https://doi.org/10.1508/cytologia.47.419</a>. Accessed 4 Nov. 2026.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var views = ["beginning", "timeline", "method", "results", "log", "references"];
+  var current = "beginning";
+  var reader = document.getElementById("reader");
+  var lastFocus = null;
+
+  function showView(name) {
+    if (views.indexOf(name) === -1) name = "beginning";
+    current = name;
+    views.forEach(function (v) {
+      document.getElementById("view-" + v).classList.toggle("active", v === name);
+    });
+    document.querySelectorAll(".tab[data-view]").forEach(function (b) {
+      if (b.dataset.view === name) b.setAttribute("aria-current", "page");
+      else b.removeAttribute("aria-current");
+    });
+  }
+
+  function openReader() {
+    lastFocus = document.activeElement;
+    reader.classList.add("open");
+    reader.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    document.getElementById("close-btn").focus();
+  }
+  function closeReader() {
+    reader.classList.remove("open");
+    reader.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    if (lastFocus) lastFocus.focus();
+  }
+
+  function route() {
+    var h = (location.hash || "").replace("#", "");
+    if (h === "proposal") { openReader(); return; }
+    if (reader.classList.contains("open")) closeReader();
+    showView(h || current);
+  }
+
+  document.querySelectorAll(".tab[data-view]").forEach(function (b) {
+    b.addEventListener("click", function () { location.hash = b.dataset.view; });
+  });
+  document.querySelectorAll("[data-open-proposal]").forEach(function (b) {
+    b.addEventListener("click", function () { location.hash = "proposal"; });
+  });
+  document.querySelectorAll("[data-close]").forEach(function (el) {
+    el.addEventListener("click", function () { location.hash = current; });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && reader.classList.contains("open")) location.hash = current;
+  });
+  document.querySelectorAll("[data-jump]").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      var t = document.querySelector(a.getAttribute("href"));
+      if (t) t.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    });
+  });
+
+  window.addEventListener("hashchange", route);
+  showView("beginning");
+  route();
+})();
+</script>
+</body>
+</html>
